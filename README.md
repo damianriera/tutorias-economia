@@ -29,16 +29,25 @@ Aplicación **Next.js** pensada para **Vercel** (plan Hobby, gratis) con
    (así solo existen las cuentas que crea la coordinación).
 4. **Authentication → URL Configuration**: en *Site URL* poner la dirección de Vercel
    (p. ej. `https://tutorias-economia.vercel.app`) y en *Redirect URLs* agregar
-   `https://tutorias-economia.vercel.app/auth/callback` (sirve para "Olvidé mi contraseña").
-5. Por cada tutor/a:
-   - **Authentication → Users → Add user → Create new user**: correo y una contraseña
-     inicial, con *Auto Confirm User* marcado. Se le pasa la contraseña y la cambia en *Mi cuenta*.
+   `https://tutorias-economia.vercel.app/auth/**` (sirve para "Olvidé mi contraseña").
+5. (Opcional, solo si se configura un SMTP propio, porque sin él Supabase no deja
+   editar las plantillas) **Authentication → Emails → Templates**: en *Invite user* y en
+   *Reset password*, cambiar el enlace del mensaje por (respectivamente):
+   - `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/cuenta`
+   - `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/cuenta`
+6. Por cada tutor/a:
    - **Table Editor → autorizados → Insert row**: su correo en minúsculas.
-6. **Project Settings → API**: copiar *Project URL*, la clave pública
+   - **Authentication → Users → Add user → Send invitation**: le llega un correo, entra
+     y elige su contraseña en *Mi cuenta*. (También se puede usar *Create new user* con
+     una contraseña inicial y *Auto Confirm User*.)
+7. **Project Settings → API**: copiar *Project URL*, la clave pública
    (*publishable* o *anon*) y la clave secreta (*secret* o *service_role*; no compartirla).
 
 ### 2. Cargar los datos
-En la computadora donde están la planilla y el JSON de Guaraní:
+Opción A, sin claves: `python3 scripts/cargar_datos.py PLANILLA.xlsx GUARANI.json --sql > carga.sql`
+y pegar `carga.sql` en **SQL Editor** → *Run*. Borrar `carga.sql` después (tiene datos personales).
+
+Opción B, directo a la API, en la computadora donde están la planilla y el JSON de Guaraní:
 
 ```bash
 pip install openpyxl
@@ -55,7 +64,8 @@ datos anteriores y el sitio los muestra al instante, sin volver a desplegar.
 2. En **Environment Variables** cargar (ver [`.env.example`](.env.example)):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (la clave pública)
-   - `CRON_SECRET` (cualquier texto largo al azar)
+   - `CRON_SECRET` (opcional: texto largo al azar)
+   Con la integración de Supabase del Marketplace de Vercel las dos primeras se cargan solas.
 3. **Deploy**. La dirección queda en *Settings → Domains*; usarla en el paso 1.4 de Supabase.
 
 `vercel.json` programa una llamada diaria a `/api/keepalive` para que Supabase
