@@ -6,6 +6,9 @@ Uso (desde la carpeta del repositorio):
   export SUPABASE_SERVICE_ROLE_KEY="..."      # clave secreta: no compartirla ni subirla
   python3 scripts/cargar_datos.py RUTA/relevamiento-actualizado.xlsx [RUTA/oficial-guarani.json]
 
+Sin claves: agregar --sql para imprimir una sentencia SQL que se pega en
+Supabase → SQL Editor (no guardar ni compartir el resultado: tiene datos personales).
+
 Lee la planilla de respuestas del formulario y, si se indica, la historia
 académica de SIU Guaraní, y guarda todo en la fila 'actual' de la tabla
 datos_transicion. Los archivos con datos personales quedan en tu computadora o en la
@@ -73,19 +76,34 @@ def subir(url, clave, contenido):
         raise SystemExit(f"Supabase respondió {e.code}: {e.read().decode(errors='replace')}")
 
 
+def como_sql(datos):
+    js = json.dumps(datos, ensure_ascii=False, separators=(",", ":"))
+    if "$datos$" in js:
+        raise SystemExit("Los datos contienen el delimitador $datos$")
+    return ("insert into public.datos_transicion (id, contenido, actualizado)\n"
+            f"values ('actual', $datos${js}$datos$::jsonb, now())\n"
+            "on conflict (id) do update set contenido = excluded.contenido, actualizado = now();\n")
+
+
 def main():
-    if len(sys.argv) < 2:
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if not args:
         raise SystemExit(__doc__)
+    sql = "--sql" in sys.argv
+    xlsx = Path(args[0])
+    rows = leer(xlsx)
+    datos = {"rows": rows, "source": f"{xlsx.name}, {datetime.date.today():%d/%m/%Y}"}
+    if len(args) > 1:
+        datos["oficial"] = json.loads(Path(args[1]).read_text(encoding="utf-8"))
+        print(f"Datos oficiales: {len(datos['oficial']['alumnos'])} estudiantes", file=sys.stderr)
+    if sql:
+        sys.stdout.write(como_sql(datos))
+        print(f"SQL generado con {len(rows)} respuestas.", file=sys.stderr)
+        return
     url = os.environ.get("SUPABASE_URL")
     clave = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SECRET_KEY")
     if not url or not clave:
-        raise SystemExit("Definí SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (ver README).")
-    xlsx = Path(sys.argv[1])
-    rows = leer(xlsx)
-    datos = {"rows": rows, "source": f"{xlsx.name}, {datetime.date.today():%d/%m/%Y}"}
-    if len(sys.argv) > 2:
-        datos["oficial"] = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-        print(f"Datos oficiales: {len(datos['oficial']['alumnos'])} estudiantes")
+        raise SystemExit("Definí SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY, o usá --sql (ver README).")
     subir(url, clave, datos)
     print(f"Listo: {len(rows)} respuestas cargadas en Supabase.")
 

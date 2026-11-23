@@ -7,8 +7,10 @@ import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/supabase/
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  // Si CRON_SECRET está definido, solo Vercel Cron puede llamarla. Si no, queda
+  // abierta: no devuelve datos y solo hace una consulta liviana.
   const secreto = process.env.CRON_SECRET;
-  if (!secreto || request.headers.get("authorization") !== `Bearer ${secreto}`) {
+  if (secreto && request.headers.get("authorization") !== `Bearer ${secreto}`) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   if (!supabaseConfigurado()) return NextResponse.json({ ok: false, error: "sin configuración" }, { status: 500 });
