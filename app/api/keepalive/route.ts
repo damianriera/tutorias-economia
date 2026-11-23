@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
   }
   if (!supabaseConfigurado()) return NextResponse.json({ ok: false, error: "sin configuración" }, { status: 500 });
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
-  // Consulta liviana: sin sesión, RLS no devuelve filas, pero la base registra actividad.
+  // Consulta liviana sin sesión: Postgres la rechaza por permisos (42501), y eso
+  // alcanza para registrar actividad sin exponer datos.
   const { error } = await supabase.from("datos_transicion").select("id").limit(1);
-  return NextResponse.json({ ok: !error });
+  const ok = !error || error.code === "42501";
+  return NextResponse.json({ ok, ...(ok ? {} : { error: error?.code }) }, { status: ok ? 200 : 500 });
 }
