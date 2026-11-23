@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 
 export default function FormularioLogin({ errorInicial }: { errorInicial: string }) {
@@ -9,6 +9,28 @@ export default function FormularioLogin({ errorInicial }: { errorInicial: string
   const [msg, setMsg] = useState(errorInicial);
   const [ok, setOk] = useState("");
   const [enviando, setEnviando] = useState(false);
+
+  // Enlaces de invitación o recuperación con las plantillas de correo por defecto
+  // de Supabase: llegan con la sesión en el fragmento (#access_token=...).
+  useEffect(() => {
+    const h = new URLSearchParams(window.location.hash.slice(1));
+    const access_token = h.get("access_token");
+    const refresh_token = h.get("refresh_token");
+    if (h.get("error_description")) setMsg(h.get("error_description") ?? "");
+    if (!access_token || !refresh_token) return;
+    setOk("Validando el enlace…");
+    crearClienteNavegador()
+      .auth.setSession({ access_token, refresh_token })
+      .then(({ error }) => {
+        if (error) {
+          setOk("");
+          setMsg("El enlace venció o ya se usó. Pedí uno nuevo.");
+          return;
+        }
+        const tipo = h.get("type");
+        window.location.replace(tipo === "invite" || tipo === "recovery" ? "/cuenta" : "/");
+      });
+  }, []);
 
   async function ingresar(e: React.FormEvent) {
     e.preventDefault();

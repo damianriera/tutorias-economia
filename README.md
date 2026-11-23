@@ -29,9 +29,10 @@ Aplicación **Next.js** pensada para **Vercel** (plan Hobby, gratis) con
    (así solo existen las cuentas que crea la coordinación).
 4. **Authentication → URL Configuration**: en *Site URL* poner la dirección de Vercel
    (p. ej. `https://tutorias-economia.vercel.app`) y en *Redirect URLs* agregar
-   `https://tutorias-economia.vercel.app/auth/callback` (sirve para "Olvidé mi contraseña").
-5. **Authentication → Emails → Templates**: en *Invite user* y en *Reset password*,
-   cambiar el enlace del mensaje por (respectivamente):
+   `https://tutorias-economia.vercel.app/auth/**` (sirve para "Olvidé mi contraseña").
+5. (Opcional, solo si se configura un SMTP propio, porque sin él Supabase no deja
+   editar las plantillas) **Authentication → Emails → Templates**: en *Invite user* y en
+   *Reset password*, cambiar el enlace del mensaje por (respectivamente):
    - `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/cuenta`
    - `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/cuenta`
 6. Por cada tutor/a:
