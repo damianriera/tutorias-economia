@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+.env
+.env.*
+!.env.example
+
+# Datos personales de estudiantes: nunca al repositorio
+datos/
+*.xlsx
+*.xls
+*.csv
+oficial-guarani*.json
